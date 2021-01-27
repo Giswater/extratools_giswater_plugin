@@ -16,10 +16,10 @@ from qgis.PyQt.QtWidgets import QMessageBox, QWidget
 
 from ...ui.ui_manager import ImportDxfUi
 from .... import global_vars
-from ....settings import tools_qgis, tools_qt, tools_gw, tools_db, dialog_button, toolbox, tools_os, tools_log
+from ....settings import tools_qgis, tools_qt, tools_gw, tools_db, dialog, toolbox, tools_os, tools_log
 
 
-class ImportDxf(dialog_button.GwDialogButton):
+class ImportDxf(dialog.GwAction):
 
     def __init__(self, icon_path, action_name, text, toolbar, action_group):
         super().__init__(icon_path, action_name, text, toolbar, action_group)
