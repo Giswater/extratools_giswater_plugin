@@ -19,7 +19,7 @@ from . import global_vars
 from .settings import tools_qgis, tools_os
 
 
-class GWPluginExample(QObject):
+class GWImporDxfPlugin(QObject):
 
     def __init__(self, iface):
         """ Constructor
@@ -29,7 +29,7 @@ class GWPluginExample(QObject):
         :type iface: QgsInterface
         """
         # Initialize instance attributes
-        super(GWPluginExample, self).__init__()
+        super(GWImporDxfPlugin, self).__init__()
         self.iface = iface
         self.plugin_toolbars = {}
         self.buttons = {}

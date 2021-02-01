@@ -9,6 +9,6 @@ def classFactory(iface):
     :type iface: QgsInterface
     """
     settings.init_plugin()
-    from .main import GWPluginExample
-    return GWPluginExample(iface)
+    from .main import GWImporDxfPlugin
+    return GWImporDxfPlugin(iface)
 
