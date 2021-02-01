@@ -74,8 +74,8 @@ class GWPluginExample(QObject):
             return
 
         global_vars.init_global(self.iface, self.iface.mapCanvas(), self.plugin_dir, self.plugin_name, None)
-        higher_version = tools_qgis.get_higher_version('1.1', self.plugin_dir)
-        global_vars.roaming_user_dir = f'{tools_os.get_datadir()}{os.sep}{self.plugin_name.capitalize()}{os.sep}{higher_version}'
+        get_major_version = tools_qgis.get_major_version('1.1', self.plugin_dir)
+        global_vars.roaming_user_dir = f'{tools_os.get_datadir()}{os.sep}{self.plugin_name.capitalize()}{os.sep}{get_major_version}'
 
         self.settings = QSettings(setting_file, QSettings.IniFormat)
         self.settings.setIniCodec(sys.getfilesystemencoding())
