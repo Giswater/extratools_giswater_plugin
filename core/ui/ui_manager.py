@@ -65,8 +65,8 @@ def get_ui_class(ui_file_name, subfolder='shared'):
     return uic.loadUiType(ui_file_path)[0]
 
 
-# tools_dxf
-FORM_CLASS = get_ui_class('import_dxf.ui', 'tools_dxf')
+# extratools_giswater_plugin
+FORM_CLASS = get_ui_class('import_dxf.ui', 'extratools_giswater_plugin')
 class ImportDxfUi(GwDialog, FORM_CLASS):
     pass
 

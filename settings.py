@@ -23,8 +23,9 @@ this.tools_os = None
 this.tools_qgis = None
 this.tools_qt = None
 this.tools_gw = None
-this.dialog = None
+this.dlg = None
 this.toolbox = None
+this.task = None
 
 
 def init_plugin():
@@ -46,8 +47,9 @@ def init_plugin():
     this.tools_qgis = importlib.import_module('.tools_qgis', package=f'{this.giswater_folder}.lib')
     this.tools_qt = importlib.import_module('.tools_qt', package=f'{this.giswater_folder}.lib')
     this.tools_gw = importlib.import_module('.tools_gw', package=f'{this.giswater_folder}.core.utils')
-    this.dialog = importlib.import_module('.dialog', package=f'{this.giswater_folder}.core.toolbars')
+    this.dlg = importlib.import_module('.dialog', package=f'{this.giswater_folder}.core.toolbars')
     this.toolbox = importlib.import_module('.toolbox_btn', package=f'{this.giswater_folder}.core.toolbars.utilities')
+    this.task = importlib.import_module('.task', package=f'{this.giswater_folder}.core.threads')
 
 
 def get_giswater_folder(filename_to_find='metadata.txt'):

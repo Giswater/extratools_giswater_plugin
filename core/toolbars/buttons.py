@@ -6,5 +6,5 @@ or (at your option) any later version.
 """
 # -*- coding: utf-8 -*-
 
-# tools_dxf
-from .tools_dxf.import_dxf import ImportDxf
+# extratools_giswater_plugin
+from .extratools_giswater_plugin.import_dxf import ImportDxf

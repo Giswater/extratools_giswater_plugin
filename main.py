@@ -98,7 +98,7 @@ class GWImporDxfPlugin(QObject):
         project_type in ('ws', 'ud')
         """
 
-        self.create_toolbar('tools_dxf')
+        self.create_toolbar('extratools_giswater_plugin')
 
         # Manage action group of every toolbar
         parent = self.iface.mainWindow()

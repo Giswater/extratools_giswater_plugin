@@ -11,19 +11,24 @@ import subprocess
 from collections import OrderedDict
 from functools import partial
 
-from qgis.core import QgsDataSourceUri, QgsProject, QgsVectorLayer, QgsVectorLayerExporter
-from qgis.PyQt.QtWidgets import QMessageBox, QWidget
 
+from qgis.PyQt.QtCore import QDate
+from qgis.PyQt.QtWidgets import QGridLayout, QToolButton, QWidget
+from qgis.core import QgsApplication, QgsDataSourceUri, QgsProject, QgsVectorLayer, QgsVectorLayerExporter
+from qgis.gui import QgsDateTimeEdit
+
+from ...threads.dfx_execute import GwDxfExtraTool
 from ...ui.ui_manager import ImportDxfUi
 from .... import global_vars
-from ....settings import tools_qgis, tools_qt, tools_gw, tools_db, dialog, toolbox, tools_os, tools_log
+from ....settings import tools_qgis, tools_qt, tools_gw, tools_db, dlg, tools_os, tools_log
 
 
-class ImportDxf(dialog.GwAction):
+class ImportDxf(dlg.GwAction):
 
     def __init__(self, icon_path, action_name, text, toolbar, action_group):
         super().__init__(icon_path, action_name, text, toolbar, action_group)
-        self.toolbox = toolbox.GwToolBoxButton(icon_path, action_name, text, None, action_group)
+        self.state_types = None
+        self.temp_layers_added = []
 
 
     def clicked_event(self):
@@ -33,57 +38,176 @@ class ImportDxf(dialog.GwAction):
         self.dlg_dxf.progressBar.setVisible(False)
         self.dlg_dxf.btn_cancel.setEnabled(False)
 
-        self.dlg_dxf.cmb_layers.currentIndexChanged.connect(
-            partial(self.toolbox.set_selected_layer, self.dlg_dxf, self.dlg_dxf.cmb_layers))
-        self.dlg_dxf.rbt_previous.toggled.connect(partial(self.toolbox.rbt_state, self.dlg_dxf.rbt_previous))
-        self.dlg_dxf.rbt_layer.toggled.connect(partial(self.toolbox.rbt_state, self.dlg_dxf.rbt_layer))
-        self.dlg_dxf.rbt_layer.setChecked(True)
+        self.cld_builtdate = tools_qt.create_datetime('cld_builtdate')
 
-        extras = f'"filterText":"Import dxf file"'
-        extras += ', "isToolbox":false'
-        body = tools_gw.create_body(extras=extras)
-        json_result = tools_gw.execute_procedure('gw_fct_gettoolbox', body)
-        if not json_result or json_result['status'] == 'Failed':
-            return False
-
-        status = self.toolbox.populate_functions_dlg(self.dlg_dxf, json_result['body']['data'], self)
-        if not status:
-            message = "Function not found"
-            tools_qgis.show_message(message, parameter='Import dxf file')
+        lyt_config = self.dlg_dxf.findChild(QGridLayout, 'lyt_option_parameters')
+        if lyt_config in (None, 'null', 'NULL', 'Null'):
             return
+        lyt_config.addWidget(self.cld_builtdate, 3, 1)
+        self._fill_widgets()
 
-        self.dlg_dxf.btn_run.clicked.connect(
-            partial(self.toolbox.execute_function, self.dlg_dxf, self.dlg_dxf.cmb_layers, json_result['body']['data']))
+        # Signals
+        self.dlg_dxf.btn_run.clicked.connect(partial(self._execute_function, self.dlg_dxf))
+        self.dlg_dxf.btn_path.clicked.connect(partial(self._import_dxf, self.dlg_dxf, self.temp_layers_added))
+        self.dlg_dxf.cmb_state.currentIndexChanged.connect(partial(self._update_state_types))
         self.dlg_dxf.btn_close.clicked.connect(partial(tools_gw.close_dialog, self.dlg_dxf))
-        self.dlg_dxf.btn_cancel.clicked.connect(partial(self.toolbox.remove_layers))
+        self.dlg_dxf.btn_cancel.clicked.connect(partial(self._remove_layers))
         self.dlg_dxf.btn_cancel.clicked.connect(partial(tools_gw.close_dialog, self.dlg_dxf))
-
+        self.dlg_dxf.rejected.connect(self._save_user_values)
         self.dlg_dxf.btn_run.setEnabled(False)
         self.dlg_dxf.btn_cancel.setEnabled(False)
+
+        self._load_user_values()
 
         tools_gw.open_dialog(self.dlg_dxf, dlg_name='toolbox')
 
 
-    def import_dxf(self, **kwargs):
+
+    def _execute_function(self, dialog):
+        """ Set background task 'GwDxfExtraTool' """
+
+        dialog.btn_cancel.setEnabled(True)
+
+        description = f"ToolBox function"
+        self.dxf_task = GwDxfExtraTool(description, dialog)
+        QgsApplication.taskManager().addTask(self.dxf_task)
+        QgsApplication.taskManager().triggerTask(self.dxf_task)
+
+        dialog.btn_cancel.clicked.connect(self._cancel_task)
+
+
+    def _cancel_task(self):
+        if hasattr(self, 'dxf_task'):
+            self.dxf_task.cancel()
+
+
+    def _import_dxf(self, dialog, temp_layers_added):
         """ Function called in def add_button(self, dialog, field): -->
                 widget.clicked.connect(partial(getattr(module, function_name), **kwargs)) """
 
         path, filter_ = tools_os.open_file_path("Select DXF file", "DXF Files (*.dxf)")
         if not path:
             return
-
-        dialog = kwargs['dialog']
-        widget = kwargs['widget']
-        temp_layers_added = kwargs['temp_layers_added']
         complet_result = self._manage_dxf(dialog, path, False, True)
 
         for layer in complet_result['temp_layers_added']:
             temp_layers_added.append(layer)
         if complet_result is not False:
-            widget.setText(complet_result['path'])
+            dialog.txt_path.setText(complet_result['path'])
 
         dialog.btn_run.setEnabled(True)
-        dialog.btn_cancel.setEnabled(True)
+
+
+    def _remove_layers(self):
+        """ Remove the layers put on the toc by the tool """
+
+        root = QgsProject.instance().layerTreeRoot()
+        for layer in reversed(self.temp_layers_added):
+            self.temp_layers_added.remove(layer)
+            # Possible QGIS bug: Instead of returning None because it is not found in the TOC, it breaks
+            try:
+                dem_raster = root.findLayer(layer.id())
+            except RuntimeError:
+                continue
+
+            parent_group = dem_raster.parent()
+            try:
+                QgsProject.instance().removeMapLayer(layer.id())
+            except Exception:
+                pass
+
+            if len(parent_group.findLayers()) == 0:
+                root.removeChildNode(parent_group)
+
+
+    def _load_user_values(self):
+        state = tools_gw.get_config_parser('import_dxf', 'state', 'user', 'session')
+        tools_qt.set_combo_value(self.dlg_dxf.cmb_state, state, 0)
+        state_type = tools_gw.get_config_parser('import_dxf', 'state_type', 'user', 'session')
+        tools_qt.set_combo_value(self.dlg_dxf.cmb_state_type, state_type, 0)
+        workcat = tools_gw.get_config_parser('import_dxf', 'workcat', 'user', 'session')
+        tools_qt.set_combo_value(self.dlg_dxf.cmb_workcat, workcat, 0)
+        arc_type = tools_gw.get_config_parser('import_dxf', 'arc_type', 'user', 'session')
+        tools_qt.set_combo_value(self.dlg_dxf.cmb_arc_type, arc_type, 0)
+        node_type = tools_gw.get_config_parser('import_dxf', 'node_type', 'user', 'session')
+        tools_qt.set_combo_value(self.dlg_dxf.cmb_node_type, node_type, 0)
+        topocontrol = tools_gw.get_config_parser('import_dxf', 'topocontrol', 'user', 'session')
+        tools_qt.set_checked(self.dlg_dxf, self.dlg_dxf.chk_topocontrol, tools_os.set_boolean(topocontrol))
+        builtdate = tools_gw.get_config_parser('import_dxf', 'builtdate', 'user', 'session')
+        if builtdate not in ('', None, 'null'):
+            date = QDate.fromString(builtdate.replace('/', '-'), 'yyyy-MM-dd')
+            tools_qt.set_calendar(self.dlg_dxf, 'cld_builtdate', date)
+        else:
+            self.cld_builtdate.clear()
+
+
+    def _save_user_values(self):
+        state = tools_qt.get_combo_value(self.dlg_dxf, self.dlg_dxf.cmb_state, 0)
+        tools_gw.set_config_parser('import_dxf', 'state', f"{state}")
+        state_type = tools_qt.get_combo_value(self.dlg_dxf, self.dlg_dxf.cmb_state_type, 0)
+        tools_gw.set_config_parser('import_dxf', 'state_type', f"{state_type}")
+        workcat = tools_qt.get_combo_value(self.dlg_dxf, self.dlg_dxf.cmb_workcat, 0)
+        tools_gw.set_config_parser('import_dxf', 'workcat', f"{workcat}")
+        arc_type = tools_qt.get_combo_value(self.dlg_dxf, self.dlg_dxf.cmb_arc_type, 0)
+        tools_gw.set_config_parser('import_dxf', 'arc_type', f"{arc_type}")
+        node_type = tools_qt.get_combo_value(self.dlg_dxf, self.dlg_dxf.cmb_node_type, 0)
+        tools_gw.set_config_parser('import_dxf', 'node_type', f"{node_type}")
+        topocontrol = tools_qt.is_checked(self.dlg_dxf, self.dlg_dxf.chk_topocontrol)
+        tools_gw.set_config_parser('import_dxf', 'topocontrol', f"{topocontrol}")
+        builtdate = tools_qt.get_calendar_date(self.dlg_dxf, 'cld_builtdate')
+        tools_gw.set_config_parser('import_dxf', 'builtdate', f"{builtdate}")
+
+
+    def _update_state_types(self):
+        """ Updates the child combo values when the parent combo moves """
+
+        state = tools_qt.get_combo_value(self.dlg_dxf, self.dlg_dxf.cmb_state, 0)
+        new_state_types = []
+        for state_type in self.state_types:
+            if state_type[2] == state:
+                new_state_types.append(state_type)
+        tools_qt.fill_combo_values(self.dlg_dxf.cmb_state_type, new_state_types, 1)
+
+
+    def _fill_widgets(self):
+        """ Fill the widgets with the values of the dv """
+
+        sql = "SELECT descript FROM sys_function WHERE id = 2784;"
+        row = tools_db.get_row(sql)
+        if row:
+            tools_qt.set_widget_text(self.dlg_dxf, self.dlg_dxf.txt_info, row[0])
+
+        sql = "SELECT id, name FROM value_state"
+        self.states = tools_db.get_rows(sql)
+        tools_qt.fill_combo_values(self.dlg_dxf.cmb_state, self.states, 1)
+
+        sql = "SELECT id, name, state FROM value_state_type;"
+        self.state_types = tools_db.get_rows(sql)
+        tools_qt.fill_combo_values(self.dlg_dxf.cmb_state_type, self.state_types, 1)
+
+        sql = "SELECT id, id FROM cat_work;"
+        rows = tools_db.get_rows(sql)
+        tools_qt.fill_combo_values(self.dlg_dxf.cmb_workcat, rows, 1)
+
+        sql = "SELECT id, id FROM cat_feature_arc;"
+        rows = tools_db.get_rows(sql)
+        tools_qt.fill_combo_values(self.dlg_dxf.cmb_arc_type, rows, 1)
+
+        sql = "SELECT id, id FROM cat_feature_node;"
+        rows = tools_db.get_rows(sql)
+        tools_qt.fill_combo_values(self.dlg_dxf.cmb_node_type, rows, 1)
+
+
+
+    def _populate_cmb_type(self, feature_types):
+
+        feat_types = []
+        for item in feature_types:
+            elem = [item.upper(), item.upper()]
+            feat_types.append(elem)
+        if feat_types and len(feat_types) <= 1:
+            self.dlg_functions.cmb_feature_type.setVisible(False)
+        tools_qt.fill_combo_values(self.dlg_functions.cmb_feature_type, feat_types, 1)
 
 
     def _manage_dxf(self, dialog, dxf_path, export_to_db=False, toc=False, del_old_layers=True):
