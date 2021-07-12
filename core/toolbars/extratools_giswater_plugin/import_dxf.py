@@ -89,13 +89,13 @@ class ImportDxf(dlg.GwAction):
         if not path:
             return
         complet_result = self._manage_dxf(dialog, path, False, True)
+        if complet_result:
+            for layer in complet_result['temp_layers_added']:
+                temp_layers_added.append(layer)
+            if complet_result is not False:
+                dialog.txt_path.setText(complet_result['path'])
 
-        for layer in complet_result['temp_layers_added']:
-            temp_layers_added.append(layer)
-        if complet_result is not False:
-            dialog.txt_path.setText(complet_result['path'])
-
-        dialog.btn_run.setEnabled(True)
+            dialog.btn_run.setEnabled(True)
 
 
     def _remove_layers(self):
@@ -285,14 +285,8 @@ class ImportDxf(dlg.GwAction):
         # Unlock signals
         global_vars.iface.mainWindow().blockSignals(False)
 
-        extras = "  "
-        for widget in dialog.grb_parameters.findChildren(QWidget):
-            widget_name = widget.property('columnname')
-            value = tools_qt.get_text(dialog, widget, add_quote=False)
-            extras += f'"{widget_name}":"{value}", '
-        extras = extras[:-2]
-        body = tools_gw.create_body(extras)
         result = tools_gw.execute_procedure('gw_fct_check_importdxf', None)
+
         if not result or result['status'] == 'Failed':
             return False
 
