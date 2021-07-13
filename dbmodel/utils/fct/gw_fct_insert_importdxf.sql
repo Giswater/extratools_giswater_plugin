@@ -211,7 +211,7 @@ BEGIN
 				'"line":'||v_result_line||','||
 				'"polygon":'||v_result_polygon||'}'||
 		       '}'||
-	    '}')::json, 2784);
+	    '}')::json, 2784, null, null, null);
 
 	EXCEPTION WHEN OTHERS THEN
 	GET STACKED DIAGNOSTICS v_error_context = PG_EXCEPTION_CONTEXT;
