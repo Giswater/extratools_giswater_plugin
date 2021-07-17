@@ -62,15 +62,15 @@
             </property>
            </spacer>
           </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MORE INFO: &lt;a href=&quot;https://github.com/Giswater/giswater_tools/wiki/import-geopackage&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/Giswater/giswater_tools/wiki/import-geopackage&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
           <item row="0" column="0">
-           <layout class="QGridLayout" name="lyt_option_parameters" rowstretch="0,0,0,0,0,0,0,0,0" columnstretch="0,1">
-            <item row="8" column="0">
-             <widget class="QLabel" name="lbl_path">
-              <property name="text">
-               <string>Select DXF file:</string>
-              </property>
-             </widget>
-            </item>
+           <layout class="QGridLayout" name="lyt_option_parameters" rowstretch="0,0,0,0,0,0,0" columnstretch="0,0">
             <item row="2" column="0">
              <widget class="QLabel" name="lbl_workcat">
               <property name="text">
@@ -78,36 +78,8 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="lbl_node_type">
-              <property name="text">
-               <string>Node type:</string>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="1">
              <widget class="QComboBox" name="cmb_state_type"/>
-            </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="lbl_arc_type">
-              <property name="text">
-               <string>Arc type:</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QCheckBox" name="chk_topocontrol">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="lbl_builtdate">
-              <property name="text">
-               <string>Builtdate:</string>
-              </property>
-             </widget>
             </item>
             <item row="1" column="0">
              <widget class="QLabel" name="label">
@@ -116,13 +88,34 @@
               </property>
              </widget>
             </item>
+            <item row="6" column="0">
+             <widget class="QLabel" name="lbl_path">
+              <property name="text">
+               <string>Select Geopackage file:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QCheckBox" name="chk_topocontrol">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
             <item row="2" column="1">
              <widget class="QComboBox" name="cmb_workcat"/>
             </item>
-            <item row="6" column="0">
+            <item row="4" column="0">
              <widget class="QLabel" name="lbl_topocontrol">
               <property name="text">
                <string>Active topocontrol:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="lbl_builtdate">
+              <property name="text">
+               <string>Builtdate:</string>
               </property>
              </widget>
             </item>
@@ -136,13 +129,7 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="1">
-             <widget class="QComboBox" name="cmb_node_type"/>
-            </item>
-            <item row="4" column="1">
-             <widget class="QComboBox" name="cmb_arc_type"/>
-            </item>
-            <item row="8" column="1">
+            <item row="6" column="1">
              <layout class="QHBoxLayout" name="lyt_path">
               <item>
                <widget class="QLineEdit" name="txt_path">
@@ -173,13 +160,6 @@
              </layout>
             </item>
            </layout>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;MORE INFO: &lt;a href=&quot; https://github.com/Giswater/giswater_tools/wiki/import-dxf&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;https://github.com/Giswater/giswater_tools/wiki/import-dxf&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-           </widget>
           </item>
          </layout>
         </widget>
