@@ -21,3 +21,10 @@ VALUES (2786, 'gw_fct_check_importdxf', 'utils', 'function', 'void', 'json','Fun
 
 INSERT INTO sys_fprocess(fid, fprocess_name, project_type, source)
 VALUES (206, 'Manage dxf file', 'utils', 'gw_import_dxf' )ON CONFLICT (fid) DO NOTHING;
+
+-- 20/07/2021
+INSERT INTO config_function (id, function_name, returnmanager, layermanager, actions) 
+VALUES(2786,'gw_fct_check_importdxf','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"line":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"polygon":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}}}',NULL,NULL)
+ON CONFLICT (id) DO NOTHING;
