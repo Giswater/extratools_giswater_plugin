@@ -4,10 +4,8 @@ The program is free software: you can redistribute it and/or modify it under the
 This version of Giswater is provided by Giswater Association
 */
 
-SET search_path=SCHEMA_NAME;
+SET search_path=SCHEMA_NAME , public;
 
-insert into ws_sample.import_arc
-select * from ws_sample.import_arc limit 3
 
 --delete arc
 --SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"ARC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"2010"}}$$)::text;
@@ -126,4 +124,3 @@ SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES
 SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"CONNEC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"3178"}}$$)::text;
 SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"CONNEC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"3179"}}$$)::text;
 SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"CONNEC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"3180"}}$$)::text;
-

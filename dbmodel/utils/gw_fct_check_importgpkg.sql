@@ -11,7 +11,7 @@ $BODY$
 
 /*EXAMPLE
 SELECT ws_sample.gw_fct_check_importgpkg($${"client":{"device":4, "infoType":1, "lang":"ES"},
-"form":{},"feature":{"tableName":"temp_ve_node"}}$$)::JSON
+"form":{},"feature":{"featureType":"NODE"}}$$)::JSON
 
 -- fid: 392
 
@@ -43,13 +43,16 @@ BEGIN
 	-- search path
 	SET search_path = "ws_sample", public;
 
-	-- select config values
+	-- get input values
+	v_featuretype  = upper((p_data->>'feature')::json->>'featureType');
+
+	-- get system values
 	SELECT project_type, giswater INTO v_project_type, v_version FROM sys_version order by id desc limit 1;
 
-	-- delete old values on result table
+
+	-- delete old values on tables
 	DELETE FROM audit_check_data WHERE fid = v_fid AND cur_user=current_user;
-	DELETE FROM temp_ve_node WHERE fid = v_fid AND cur_user=current_user;
-	DELETE FROM temp_ve_arc WHERE fid = v_fid AND cur_user=current_user;
+	EXECUTE 'DELETE FROM temp_import_',lower(v_featuretype)' WHERE fid = v_fid AND cur_user=current_user';
 	
 	-- Starting process
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 4, concat('CHECK IMPORT GEOPACKAGE'));
@@ -64,57 +67,21 @@ BEGIN
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, 'INFO');
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, '-------');
 
-	
 
-	-- mandatory
-	------------
-	
-	-- catalog
-		
-	-- state
-		
-	-- state_type
-		
-	-- exploitation
-	
-	
-	
-	-- higly recommendend
-	---------------------
-	
-	-- dma_id
-	
-	-- presszone_id
-	
-	-- category_type
-	
-	-- function_type
-	
-	
-	
-	-- recomended
-	-------------
-	
-	-- workcat_id
-	
-	-- builtdate
-	
-	
-	
-	-- topology nodes
-	-----------------
-	-- duplicated nodes
-	
-		
-	
-	-- topology arcs
-	----------------
-	
-	-- extermals nodes
-	
-	-- duplicated arcs
-	
-		
+	-- errors
+	FOR SELECT * FROM config_form_fields
+	LOOP
+
+
+	END LOOP
+
+	-- warnings
+
+
+
+	-- info
+
+
 	
 	
 
