@@ -30,6 +30,7 @@ SELECT * FROM arc where comment ='INS'
 -- fid: 392
 */
 
+
 DECLARE 
 
 
@@ -63,6 +64,8 @@ v_arc_type text;
 v_node_type text;
 v_current_psector text;
 v_fid integer = 392;
+v_querytext text;
+v_message text = 'Import geopackage done succesfully';
 
 v_status boolean;
 
@@ -95,191 +98,198 @@ BEGIN
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, 'INFO');
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, '-------');
 
-	--deactivate topocontrol
-	IF v_topocontrol is FALSE THEN
-	
-		-- disable topology proximity control
-		UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_node_proximity';
-		UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_connec_proximity';
-		UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_arc_searchnodes';
-	ELSE
-		UPDATE config_param_system SET value = TRUE WHERE parameter = 'edit_topocontrol_disable_error';
-	END IF;
-	
-	--insert nodes from gpkg
-	IF v_project_type = 'WS' THEN
 
-		IF v_featuretype = 'NODE' THEN
-		-- nodes
-			INSERT INTO v_edit_node (	
-				-- error
-				code, nodecat_id, the_geom,
-				-- warning
-				elevation,
-				epa_type, expl_id, state, state_type,
-				function_type, category_type,workcat_id,
-				sector_id, dma_id, presszone_id,
-				builtdate,
-				-- info
-				arc_id, parent_id, 
-				dqa_id, minsector_id,
-				workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
-				fluid_type, location_type, 
-				annotation, observ, comment, descript, link,
-				muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
-				soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id)
+	-- check quality data from temp_table
+	v_querytext ='SELECT count(*) FROM temp_import_'||lower(v_featuretype)||' WHERE log_level > 2';
+	EXECUTE v_querytext INTO v_count;
 
-			SELECT 
-				-- error
-				code, nodecat_id, the_geom,
-				-- warning
-				elevation,
-				epa_type, expl_id, state, state_type,
-				function_type, category_type,workcat_id,
-				sector_id, dma_id, presszone_id,
-				builtdate,
-				-- info
-				arc_id, parent_id, 
-				dqa_id, minsector_id,
-				workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
-				fluid_type, location_type, 
-				annotation, observ, comment, descript, link,
-				muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
-				soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id
-			FROM temp_import_node
-			WHERE the_geom NOT IN (SELECT the_geom FROM anl_node WHERE fid=392 AND descript='DUPLICATED') ;
+	IF v_count > 0 THEN
+		INSERT INTO audit_check_data (fid, result_id, criticity, error_message) 
+		VALUES (v_fid, null, 3, concat ('There is/are ', v_count,' features with errors on columns related to catalog. Please fix it before continue.'));
+		v_message = 'Import geopackage canceled. Please check your data....';
+	ELSE 
+		--disable topocontrol
+		IF v_topocontrol is FALSE THEN
+		
+			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_node_proximity';
+			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_connec_proximity';
+			UPDATE config_param_system SET value = TRUE WHERE parameter = 'edit_topocontrol_disable_error';
+		END IF;
+		
+		--insert nodes from gpkg
+		IF v_project_type = 'WS' THEN
 
-			GET DIAGNOSTICS v_count = row_count;
-			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted node(s) from geopackage file.'));
+			IF v_featuretype = 'NODE' THEN
+			-- nodes
+				INSERT INTO v_edit_node (	
+					-- error
+					code, nodecat_id, the_geom,
+					-- warning
+					elevation,
+					epa_type, expl_id, state, state_type,
+					function_type, category_type,workcat_id,
+					sector_id, dma_id, presszone_id,
+					builtdate,
+					-- info
+					arc_id, parent_id, 
+					dqa_id, minsector_id,
+					workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
+					fluid_type, location_type, 
+					annotation, observ, comment, descript, link,
+					muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
+					soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id)
 
-			-- enable topology proximity control
+				SELECT 
+					-- error
+					code, nodecat_id, the_geom,
+					-- warning
+					elevation,
+					epa_type, expl_id, state, state_type,
+					function_type, category_type,workcat_id,
+					sector_id, dma_id, presszone_id,
+					builtdate,
+					-- info
+					arc_id, parent_id, 
+					dqa_id, minsector_id,
+					workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
+					fluid_type, location_type, 
+					annotation, observ, comment, descript, link,
+					muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
+					soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id
+				FROM temp_import_node;
+
+				GET DIAGNOSTICS v_count = row_count;
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted node(s) from geopackage file.'));
+
+				-- enable topology proximity control
+				UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', TRUE) WHERE parameter = 'edit_node_proximity';
+
+
+			ELSIF v_featuretype ='ARC' THEN
+			
+				-- arcs
+				INSERT INTO v_edit_arc (	
+					-- error
+					code, arccat_id, the_geom,
+
+					-- warning
+					epa_type, expl_id, state, state_type,
+					function_type, category_type,workcat_id,
+					sector_id, dma_id, presszone_id,
+					builtdate,
+
+					-- info
+					dqa_id, minsector_id,
+					workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
+					fluid_type, location_type, 
+					annotation, observ, comment, descript, link,
+					muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
+					custom_length, soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, adate, asset_id)
+
+				SELECT 
+					-- error
+					code, arccat_id, the_geom,
+
+					-- warning
+					epa_type, expl_id, state, state_type,
+					function_type, category_type,workcat_id,
+					sector_id, dma_id, presszone_id,
+					builtdate,
+
+					-- info
+					dqa_id, minsector_id,
+					workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
+					fluid_type, location_type, 
+					annotation, observ, comment, descript, link,
+					muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
+					custom_length, soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, adate, asset_id
+				FROM temp_import_arc;
+
+				GET DIAGNOSTICS v_count = row_count;
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted arc(s) from geopackage file.'));
+				
+			ELSIF  v_featuretype ='CONNEC' THEN
+
+				-- disable autofill customer code
+				v_status = (SELECT (value::json)->>'status' FROM config_param_system WHERE parameter = 'edit_connec_autofill_ccode');
+				UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'status', FALSE) WHERE parameter = 'edit_connec_autofill_ccode';
+
+				-- remove arc_id
+				UPDATE temp_import_connec SET arc_id = null;
+				
+				-- connecs
+				INSERT INTO v_edit_connec (	
+					-- error
+					code, connecat_id, the_geom,
+					-- warning
+					elevation, customer_code,
+					expl_id, state, state_type,
+					function_type, category_type,workcat_id,
+					sector_id, dma_id, presszone_id,
+					builtdate,
+					-- info
+					connec_length, arc_id, 
+					dqa_id, minsector_id,
+					workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
+					fluid_type, location_type, 
+					annotation, observ, comment, descript, link,
+					muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
+					soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id)
+
+				SELECT 
+					-- error
+					code, connecat_id, the_geom,
+					-- warning
+					elevation, customer_code,
+					expl_id, state, state_type,
+					function_type, category_type,workcat_id,
+					sector_id, dma_id, presszone_id,
+					builtdate,
+					-- info
+					connec_length, arc_id, 
+					dqa_id, minsector_id,
+					workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
+					fluid_type, location_type, 
+					annotation, observ, comment, descript, link,
+					muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
+					soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id
+				FROM temp_import_connec;
+
+				GET DIAGNOSTICS v_count = row_count;
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted connec(s) from geopackage file.'));
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: arc_id have been removed, as result connecs are disconnected from any arc.'));
+
+				-- restore values
+				UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'status', v_status) WHERE parameter = 'edit_connec_autofill_ccode';			
+			END IF;
+
+		ELSIF v_project_type = 'UD' THEN
+			-- todo;
+			
+		END IF;
+
+		IF v_topocontrol is FALSE THEN
+			-- disable topology proximity control
 			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', TRUE) WHERE parameter = 'edit_node_proximity';
-
-
-		ELSIF v_featuretype ='ARC' THEN
-		
-			-- arcs
-			INSERT INTO v_edit_arc (	
-				-- error
-				code, arccat_id, the_geom,
-
-				-- warning
-				epa_type, expl_id, state, state_type,
-				function_type, category_type,workcat_id,
-				sector_id, dma_id, presszone_id,
-				builtdate,
-
-				-- info
-				dqa_id, minsector_id,
-				workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
-				fluid_type, location_type, 
-				annotation, observ, comment, descript, link,
-				muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
-				custom_length, soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, adate, asset_id)
-
-			SELECT 
-				-- error
-				code, arccat_id, the_geom,
-
-				-- warning
-				epa_type, expl_id, state, state_type,
-				function_type, category_type,workcat_id,
-				sector_id, dma_id, presszone_id,
-				builtdate,
-
-				-- info
-				dqa_id, minsector_id,
-				workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
-				fluid_type, location_type, 
-				annotation, observ, comment, descript, link,
-				muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
-				custom_length, soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, adate, asset_id
-			FROM temp_import_arc;
-
-			GET DIAGNOSTICS v_count = row_count;
-			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted arc(s) from geopackage file.'));
+			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', TRUE) WHERE parameter = 'edit_connec_proximity';
+			UPDATE config_param_system SET value = FALSE WHERE parameter = 'edit_topocontrol_disable_error';
 			
-		ELSIF  v_featuretype ='CONNEC' THEN
+			-- log 
+			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 4, 
+			concat ('INFO: Geopackage have been inserted without topocontrol rules. Maybe there are some incosistencies in your network.'));
 
-			-- disable autofill customer code
-			v_status = (SELECT (value::json)->>'status' INTO v_status FROM config_param_system WHERE parameter = 'edit_connec_autofill_ccode');
-			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'status', FALSE) WHERE parameter = 'edit_connec_autofill_ccode';
+			-- log for arcs
+			SELECT count (*) INTO v_count FROM audit_log_data WHERE fid=4 and cur_user = current_user;
+			IF v_count >0 THEN
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 3, concat ('ERROR-004: There is/are ',v_count,' inserted aec(s) without node_1 or node_2. Check it before continue.'));
+			ELSE
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: All arcs have been inserted with correct topology.'));
+			END IF;
 
-			-- remove arc_id
-			UPDATE temp_import_connec SET arc_id = null;
-			
-			-- connecs
-			INSERT INTO v_edit_connec (	
-				-- error
-				code, connecat_id, the_geom,
-				-- warning
-				elevation, customer_code,
-				expl_id, state, state_type,
-				function_type, category_type,workcat_id,
-				sector_id, dma_id, presszone_id,
-				builtdate,
-				-- info
-				connec_length, arc_id, 
-				dqa_id, minsector_id,
-				workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
-				fluid_type, location_type, 
-				annotation, observ, comment, descript, link,
-				muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
-				soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id)
+			-- log for connecs (duplicated)
 
-			SELECT 
-				-- error
-				code, connecat_id, the_geom,
-				-- warning
-				elevation, customer_code,
-				expl_id, state, state_type,
-				function_type, category_type,workcat_id,
-				sector_id, dma_id, presszone_id,
-				builtdate,
-				-- info
-				connec_length, arc_id, 
-				dqa_id, minsector_id,
-				workcat_id_end, workcat_id_plan, buildercat_id, enddate, ownercat_id,
-				fluid_type, location_type, 
-				annotation, observ, comment, descript, link,
-				muni_id, postcode, district_id, streetname, postnumber, postcomplement, streetname2, postnumber2, postcomplement2,
-				soilcat_id, verified, undelete, label, label_x, label_y, label_rotation, publish, inventory, num_value, tstamp, insert_user, lastupdate, lastupdate_user, staticpressure, adate, adescript, asset_id
-			FROM temp_import_connec;
-
-			GET DIAGNOSTICS v_count = row_count;
-			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted connec(s) from geopackage file.'));
-			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: arc_id have been removed, as result connecs are disconnected from any arc.'));
-
-			-- restore values
-			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'status', v_status) WHERE parameter = 'edit_connec_autofill_ccode';			
+			-- log for nodes (duplicated)			
 		END IF;
-
-	ELSIF v_project_type = 'UD' THEN
-		-- todo;
-		
-	END IF;
-
-	IF v_topocontrol is FALSE THEN
-		-- disable topology proximity control
-		UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', TRUE) WHERE parameter = 'edit_node_proximity';
-		UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', TRUE) WHERE parameter = 'edit_connec_proximity';
-		UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', TRUE) WHERE parameter = 'edit_arc_searchnodes';
-		
-		-- log 
-		INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 2, 
-		concat ('WARNING-004: Geopackage have been inserted without topocontrol rules. Maybe there are some incosisnteny in your network. Check it before continue.'));
-
-	ELSE
-		UPDATE config_param_system SET value = FALSE WHERE parameter = 'edit_topocontrol_disable_error';
-
-		-- log 
-		SELECT count (*) INTO v_count FROM audit_log_data WHERE fid=4 and cur_user = current_user;
-		IF v_count >0 THEN
-			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 3, concat ('ERROR-004: There is/are ',v_count,' inserted aec(s) without node_1 or node_2. Check it before continue.'));
-		ELSE
-			INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: All arcs have been inserted with correct topology.'));
-		END IF;
-
 	END IF;
 
 	-- get results
@@ -297,7 +307,7 @@ BEGIN
 	v_result_point = '{"geometryType":"", "features":[]}';
 
 	-- Return
-	RETURN gw_fct_json_create_return(('{"status":"Accepted", "message":{"level":1, "text":"Insert import dxf done succesfully"}, "version":"'||v_version||'"'||
+	RETURN gw_fct_json_create_return(('{"status":"Accepted", "message":{"level":1, "text":"'||v_message||'"}, "version":"'||v_version||'"'||
              ',"body":{"form":{}'||
 		     ',"data":{ "info":'||v_result_info||','||
 				'"point":'||v_result_point||','||

@@ -6,12 +6,17 @@ This version of Giswater is provided by Giswater Association
 
 --FUNCTION CODE: 3068
 
-CREATE OR REPLACE FUNCTION "ws_sample".gw_fct_check_importgpkg(p_data json) RETURNS json AS 
+CREATE OR REPLACE FUNCTION "SCHEMA_NAME".gw_fct_check_importgpkg(p_data json) RETURNS json AS 
 $BODY$
 
 /*EXAMPLE
-SELECT ws_sample.gw_fct_check_importgpkg($${"client":{"device":4, "infoType":1, "lang":"ES"},
-"form":{},"feature":{"featureType":"CONNEC"}}$$)::JSON
+SELECT SCHEMA_NAME.gw_fct_check_importgpkg($${"client":{"device":4, "infoType":1, "lang":"ES"},"form":{},"feature":{"featureType":"CONNEC"}}$$)::JSON
+SELECT SCHEMA_NAME.gw_fct_check_importgpkg($${"client":{"device":4, "infoType":1, "lang":"ES"},"form":{},"feature":{"featureType":"ARC"}}$$)::JSON
+SELECT SCHEMA_NAME.gw_fct_check_importgpkg($${"client":{"device":4, "infoType":1, "lang":"ES"},"form":{},"feature":{"featureType":"NODE"}}$$)::JSON
+
+UPDATE temp_import_arc SET log_message = null, log_level=null;
+UPDATE temp_import_node SET log_message = null, log_level=null;
+UPDATE temp_import_connec SET log_message = null, log_level=null;
 
 -- fid: 392
 
@@ -55,7 +60,7 @@ v_values record;
 BEGIN 
 
 	-- search path
-	SET search_path = "ws_sample", public;
+	SET search_path = "SCHEMA_NAME", public;
 
 	-- get input values
 	v_featuretype  = upper((p_data->>'feature')::json->>'featureType');
@@ -86,89 +91,85 @@ BEGIN
 	-- mandatory columns
 	IF v_featuretype = 'NODE' THEN
 
-		-- nodecat
-		FOR rec_feature IN SELECT * FROM temp_import_node WHERE fid = v_fid AND cur_user=current_user
-		LOOP 
-			IF (SELECT id FROM cat_node WHERE id = rec_feature.nodecat_id) IS NULL THEN
-				UPDATE temp_import_node SET log_level = 3, log_message = 'Value for [nodecat_id] do not match with cat_node table ' WHERE node_id = rec_feature.id;
-			END IF;
-		END LOOP;
-
-		-- get log
-		SELECT count(*) INTO v_count FROM temp_import_node WHERE fid = v_fid AND cur_user=current_user AND log_message like '%cat_node%';
-		IF v_count > 0 THEN
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' node(s) wich nodecat_id do not match with cat_node table)'));	
-		ELSE
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('All values of nodecat_id match with cat_node table'));	
-		END IF;
-
-		-- node proximity
-		UPDATE temp_import_node temp SET log_level = 3, log_message = concat('Node is closer than minimun distance (',v_nodeproximity,') to other node. ') FROM (
-		SELECT rid FROM (
-		SELECT DISTINCT t1.id as rid, t1.nodecat_id, t1.state as state1, t2.nodecat_id, t2.state as state2, t1.expl_id, t1.the_geom
+		-- topology
+		UPDATE temp_import_node temp SET log_level = 2, log_message = concat('Node is closer than (',v_nodeproximity,' mts.) to other node. ') FROM (
+		SELECT rid, id FROM (
+		SELECT DISTINCT t1.id as rid, t1.nodecat_id, t1.state as state1, t2.id, t2.nodecat_id, t2.state as state2, t1.expl_id, t1.the_geom
 		FROM temp_import_node AS t1 JOIN temp_import_node AS t2 ON ST_Dwithin(t1.the_geom, t2.the_geom,(v_nodeproximity)) 
 		WHERE t1.id != t2.id 
 		AND t1.fid=v_fid and t2.fid=v_fid AND t1.cur_user=current_user AND t2.cur_user=current_user
 		ORDER BY t1.id ) a ) b
 		WHERE temp.id = b.rid ;
 
-		-- get log
+		-- get log for topology
 		GET DIAGNOSTICS v_count = row_count;
 		IF v_count > 0 THEN
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' duplicated node(s)'));	
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 2, concat('There are ',v_count,' duplicated node(s)'));	
 		ELSE
 			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('There are not duplicated nodes'));	
 		END IF;
-	
-			
-	ELSIF v_featuretype = 'ARC' THEN
-		FOR rec_feature IN SELECT * FROM temp_import_arc WHERE fid = v_fid AND cur_user=current_user
-		LOOP 
-			IF (SELECT id FROM cat_node WHERE id = rec_feature.arccat_id) IS NULL THEN
-				UPDATE temp_import_arc SET log_message = 'Value for [arccat_id] do not match with cat_arc table' WHERE node_id = rec_feature.arc_id;
-			END IF;
 
-			-- searchnodes
-			SELECT * INTO rec_node FROM node WHERE ST_DWithin(ST_startpoint(arc_rec.the_geom), node.the_geom, v_arcsearchnodes) AND (node.state=1 OR node.state=2)
-			ORDER BY ST_Distance(node.the_geom, ST_startpoint(arc_rec.the_geom)) LIMIT 1;
-			IF rec_node IS NULL THEN
-				UPDATE temp_import_node SET log_level = 3, log_message = concat(log_message, 'Any node have been found using buffer ',v_arcsearchnodes' close the [startpoint]. ') WHERE arc_id = rec_feature.id;			
-			END IF;
-		
-			SELECT * INTO rec_node FROM node WHERE ST_DWithin(ST_endpoint(arc_rec.the_geom), node.the_geom, v_arcsearchnodes) AND (node.state=1 OR node.state=2)
-			ORDER BY ST_Distance(node.the_geom, ST_endpoint(arc_rec.the_geom)) LIMIT 1;
-			IF rec_node IS NULL THEN
-				UPDATE temp_import_node SET log_level = 3, log_message = concat(log_message, 'Any node have been found using buffer ',v_arcsearchnodes' close the [endpoint]. ') WHERE arc_id = rec_feature.id;			
+		-- catalog
+		FOR rec_feature IN SELECT * FROM temp_import_node WHERE fid = v_fid AND cur_user=current_user
+		LOOP 
+			IF (SELECT id FROM cat_node WHERE id = rec_feature.nodecat_id) IS NULL THEN
+				UPDATE temp_import_node SET log_level = 3, log_message = 'MANDATORY value for [nodecat_id] do not match with cat_node table. ' WHERE id = rec_feature.id;
 			END IF;
 		END LOOP;
 
 		-- get log for catalog
-		SELECT count(*) INTO v_count FROM temp_import_arc WHERE fid = v_fid AND cur_user=current_user AND log_message like '%cat_arc%';
+		SELECT count(*) INTO v_count FROM temp_import_node WHERE fid = v_fid AND cur_user=current_user AND log_message like '%cat_node%';
 		IF v_count > 0 THEN
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' arc(s) wich arccat_id do not match with cat_arc table)'));	
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' node(s) wich nodecat_id do not match with cat_node table)'));	
 		ELSE
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('All values of arccat_id match with cat_arc table'));	
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('All values of nodecat_id match with cat_node table'));	
 		END IF;
+			
+	ELSIF v_featuretype = 'ARC' THEN
+	
+		FOR rec_feature IN SELECT * FROM temp_import_arc WHERE fid = v_fid AND cur_user=current_user
+		LOOP 
+			-- topology
+			SELECT * INTO rec_node FROM node WHERE ST_DWithin(ST_startpoint(rec_feature.the_geom), node.the_geom, v_arcsearchnodes) AND (node.state=1 OR node.state=2)
+			ORDER BY ST_Distance(node.the_geom, ST_startpoint(rec_feature.the_geom)) LIMIT 1;
+			IF rec_node IS NULL THEN
+				UPDATE temp_import_arc SET log_level = 2, log_message = concat(log_message, 'Any node have been found using buffer ',v_arcsearchnodes,' close the [startpoint]. ') WHERE id = rec_feature.id;			
+			END IF;
+		
+			SELECT * INTO rec_node FROM node WHERE ST_DWithin(ST_endpoint(rec_feature.the_geom), node.the_geom, v_arcsearchnodes) AND (node.state=1 OR node.state=2)
+			ORDER BY ST_Distance(node.the_geom, ST_endpoint(rec_feature.the_geom)) LIMIT 1;
+			IF rec_node IS NULL THEN
+				UPDATE temp_import_arc SET log_level = 2, log_message = concat(log_message, 'Any node have been found using buffer ',v_arcsearchnodes,' close the [endpoint]. ') WHERE id = rec_feature.id;			
+			END IF;
+
+			-- catalog
+			IF (SELECT id FROM cat_arc WHERE id = rec_feature.arccat_id) IS NULL THEN
+				UPDATE temp_import_arc SET log_level = 3, log_message = 'MANDATORY value for [arccat_id] do not match with cat_arc table. ' WHERE id = rec_feature.id;
+			END IF;
+
+		END LOOP;
 
 		-- get log for topology
 		SELECT count(*) INTO v_count FROM temp_import_arc WHERE fid = v_fid AND cur_user=current_user AND log_message like '%node have found%';
 		IF v_count > 0 THEN
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' arcs without node_1 or node_2)'));	
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 2, concat('There are ',v_count,' arcs without node_1 or node_2)'));	
 		ELSE
 			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('There are no problems withs node_1 and node_2'));	
 		END IF;
 
+		-- get log for catalog
+		SELECT count(*) INTO v_count FROM temp_import_arc WHERE fid = v_fid AND cur_user=current_user AND log_message like '%cat_arc%';
+		IF v_count > 0 THEN
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' arc(s) wich arccat_id do not match with cat_arc table. )'));	
+		ELSE
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('All values of arccat_id match with cat_arc table. '));	
+		END IF;
+
 
 	ELSIF v_featuretype = 'CONNEC' THEN
-		FOR rec_feature IN SELECT * FROM temp_import_connec WHERE fid = v_fid AND cur_user=current_user
-		LOOP 
-			IF (SELECT id FROM cat_connec WHERE id = rec_feature.connecat_id) IS NULL THEN
-				UPDATE temp_import_connec SET log_level = 3, log_message = 'Value for [connecat_id] do not match with cat_connec table' WHERE node_id = rec_feature.id;
-			END IF;
-		END LOOP;
 
-		-- connec proximity
-		UPDATE temp_import_connec temp SET log_level = 3, log_message = concat('Connec is closer than minimun distance (',v_connecproximity,') to other connec. ') FROM (
+		-- topology
+		UPDATE temp_import_connec temp SET log_level = 2, log_message = concat('Connec is closer than minimun distance (',v_connecproximity,') to other connec. ') FROM (
 		SELECT rid FROM (
 		SELECT DISTINCT t1.id as rid, t1.connecat_id, t1.state as state1, t2.id, t2.connecat_id, t2.state as state2, t1.expl_id, t1.the_geom
 		FROM temp_import_connec AS t1 JOIN temp_import_connec AS t2 ON ST_Dwithin(t1.the_geom, t2.the_geom,(v_connecproximity)) 
@@ -180,10 +181,18 @@ BEGIN
 		-- get log for topology
 		GET DIAGNOSTICS v_count = row_count;
 		IF v_count > 0 THEN
-			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' duplicated connec(s). Check temporal layer to see details.'));	
+			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 2, concat('There are ',v_count,' duplicated connec(s). Check temporal layer to see details.'));	
 		ELSE
 			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('There are not duplicated connecs'));	
 		END IF;
+
+		-- catalog
+		FOR rec_feature IN SELECT * FROM temp_import_connec WHERE fid = v_fid AND cur_user=current_user
+		LOOP 
+			IF (SELECT id FROM cat_connec WHERE id = rec_feature.connecat_id) IS NULL THEN
+				UPDATE temp_import_connec SET log_level = 3, log_message = 'MANDATORY value for [connecat_id] do not match with cat_connec table. ' WHERE id = rec_feature.id;
+			END IF;
+		END LOOP;
 
 		-- get log for catalog
 		SELECT count(*) INTO v_count FROM temp_import_connec WHERE fid = v_fid AND cur_user=current_user AND log_message like '%cat_connec%';
@@ -202,6 +211,8 @@ BEGIN
 			        ''streetaxis_id'',  ''streetaxis2_id'', ''postcode'', ''soilcat_id'')';
 	FOR rec_table IN EXECUTE v_querytext
 	LOOP
+
+		-- loop for all features
 		v_querytext = 'SELECT * FROM temp_import_'||lower(v_featuretype)||' WHERE fid = '||v_fid||' AND cur_user=current_user';		
 		FOR rec_feature IN EXECUTE v_querytext
 		LOOP
@@ -213,12 +224,22 @@ BEGIN
 			IF rec_table.dv_querytext is not null AND v_value IS NOT NULL then
 				EXECUTE concat('SELECT count(*) FROM (',rec_table.dv_querytext,')a WHERE a.id = ',quote_literal(v_value)) INTO v_count;
 				IF v_count = 0 THEN
-					UPDATE temp_import_connec temp SET log_level = 3, log_message = concat(log_message, 'Value for [',rec_table.columnname,'] not match with catalog]. ') WHERE id = rec_feature.id;
+					IF rec_table.columnname IN ('expl_id', 'state', 'state_type') THEN
+						v_querytext =  'UPDATE temp_import_'||lower(v_featuretype)||' temp SET log_level = 3, log_message = concat(log_message, ''MANDATORY value for ['||
+						rec_table.columnname||'] do not match with catalog. '') WHERE id = '||quote_literal(rec_feature.id);
+					ELSE 
+						v_querytext =  'UPDATE temp_import_'||lower(v_featuretype)||' temp SET log_message = concat(log_message, ''NOT REQUIRED value for ['||
+						rec_table.columnname||'] do not match with catalog. '') WHERE id = '||quote_literal(rec_feature.id);
+					END IF;
+					
+					EXECUTE v_querytext;
 				END IF;
 			END IF;			
 		END LOOP;
 
-		-- building log
+		EXECUTE 'UPDATE temp_import_'||lower(v_featuretype)||' temp SET log_level = 3 WHERE log_level IS NULL AND log_message IS NOT NULL';
+
+		-- building log for each column
 		EXECUTE 'SELECT count(*) FROM temp_import_'||lower(v_featuretype)||' WHERE fid = '||v_fid||' AND cur_user=current_user AND '||rec_table.columnname||' IS NOT NULL' INTO v_count;
 		IF v_count > 0 THEN
 
@@ -226,7 +247,7 @@ BEGIN
 
 			SELECT count(*) INTO v_count FROM temp_import_node WHERE fid = v_fid AND cur_user=current_user AND log_message like '%cat_node%';
 			IF v_count > 0 THEN
-				INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, concat('There are ',v_count,' features(s) wich [',rec_table.columnname,'] do not match with catalog table)'));	
+				INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 2, concat('There are ',v_count,' features(s) wich [',rec_table.columnname,'] do not match with catalog)'));	
 			ELSE
 				INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('All values for [',rec_table.columnname,'] matchs with catalog table'));	
 			END IF;
@@ -235,9 +256,6 @@ BEGIN
 		END IF;
 		
 	END LOOP;
-
-	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, 'NOTICE: Address columns [district_id], [streetaxis_id] and [postcode] are not checked.');
-
 
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 4, null);
 	INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 3, null);
@@ -263,11 +281,12 @@ BEGIN
 	'geometry',   ST_AsGeoJSON(the_geom)::jsonb,
 	'properties', to_jsonb(row) - 'the_geom'
   	) AS feature
-  	FROM (SELECT id, nodecat_id, log_message, log_level the_geom
-  	FROM  temp_import_node WHERE cur_user="current_user"() AND fid = v_fid AND log_level > 1
+  	FROM (
+  	SELECT id, nodecat_id, log_message, log_level, the_geom	FROM temp_import_node 
+  	WHERE cur_user="current_user"() AND fid = v_fid AND log_level > 1
   	UNION
-  	SELECT id, connecat_id, log_message, log_level the_geom
-  	FROM  temp_import_connec WHERE cur_user="current_user"() AND fid = v_fid AND log_level > 1
+  	SELECT id, connecat_id, log_message, log_level, the_geom FROM temp_import_connec 
+  	WHERE cur_user="current_user"() AND fid = v_fid AND log_level > 1
   	) row) features;
 
 	v_result := COALESCE(v_result, '{}'); 
@@ -283,7 +302,8 @@ BEGIN
 	'geometry',   ST_AsGeoJSON(the_geom)::jsonb,
 	'properties', to_jsonb(row) - 'the_geom'
 	) AS feature
-	FROM (SELECT id, arccat_id, log_message, log_level the_geom FROM  temp_import_arc 
+	FROM (
+	SELECT id, arccat_id, log_message, log_level, the_geom FROM  temp_import_arc 
 	WHERE cur_user="current_user"() AND fid = v_fid AND log_level > 1) row) features;
 
 	v_result := COALESCE(v_result, '{}'); 
@@ -293,6 +313,7 @@ BEGIN
 	v_result_info := COALESCE(v_result_info, '{}'); 
 	v_result_point := COALESCE(v_result_point, '{}'); 
 	v_result_line := COALESCE(v_result_line, '{}'); 
+	v_result_polygon := COALESCE(v_result_polygon, '{}'); 
 
 	--  Return
 	RETURN ('{"status":"Accepted", "message":{"level":1, "text":"Check import dxf done succesfully"}, "version":"'||v_version||'"'||
@@ -304,9 +325,9 @@ BEGIN
 		       '}'||
 	    '}')::json;
 
-	EXCEPTION WHEN OTHERS THEN
-	GET STACKED DIAGNOSTICS v_error_context = PG_EXCEPTION_CONTEXT;
-	RETURN ('{"status":"Failed","NOSQLERR":' || to_json(SQLERRM) || ',"SQLSTATE":' || to_json(SQLSTATE) ||',"SQLCONTEXT":' || to_json(v_error_context) || '}')::json;
+	--EXCEPTION WHEN OTHERS THEN
+	--GET STACKED DIAGNOSTICS v_error_context = PG_EXCEPTION_CONTEXT;
+	--RETURN ('{"status":"Failed","NOSQLERR":' || to_json(SQLERRM) || ',"SQLSTATE":' || to_json(SQLSTATE) ||',"SQLCONTEXT":' || to_json(v_error_context) || '}')::json;
 
 END;
 

@@ -8,10 +8,13 @@ This version of Giswater is provided by Giswater Association
 SET search_path = "SCHEMA_NAME", public, pg_catalog;
 
 
+DROP TABLE IF EXISTS temp_import_arc;
 create table temp_import_arc (
 
 fid integer,
-cur_user text,
+cur_user text NOT NULL DEFAULT "current_user"(),
+log_message text,
+log_level integer,
 
 --level 3
 id text,
@@ -50,10 +53,10 @@ link text,
 muni_id integer,
 district_id integer, 
 postcode text, 
-streetaxis_id integer, 
+streetname text, 
 postnumber integer, 
 postcomplement text, 
-streetaxis2_id integer, 
+streetname2 text, 
 postnumber2 integer, 
 postcomplement2 text, 
 custom_length float, 
@@ -77,10 +80,13 @@ asset_id text
 );
 
 
+DROP TABLE IF EXISTS temp_import_node;
 create table temp_import_node (
 
 fid integer,
-cur_user text,
+cur_user text NOT NULL DEFAULT "current_user"(),
+log_message text,
+log_level integer,
 
 --level 3
 id text,
@@ -122,10 +128,10 @@ link text,
 muni_id integer,
 district_id integer, 
 postcode text, 
-streetaxis_id integer, 
+streetname text, 
 postnumber integer, 
 postcomplement text, 
-streetaxis2_id integer, 
+streetname2 text, 
 postnumber2 integer, 
 postcomplement2 text, 
 soilcat_id text, 
@@ -149,10 +155,13 @@ asset_id text
 );
 
 
+DROP TABLE IF EXISTS temp_import_connec;
 create table temp_import_connec (
 
 fid integer,
-cur_user text,
+cur_user text NOT NULL DEFAULT "current_user"(),
+log_message text,
+log_level integer,
 
 --level 3
 id text,
@@ -194,10 +203,10 @@ link text,
 muni_id integer,
 district_id integer, 
 postcode text, 
-streetaxis_id integer, 
+streetname text, 
 postnumber integer, 
 postcomplement text, 
-streetaxis2_id integer, 
+streetname2 text, 
 postnumber2 integer, 
 postcomplement2 text, 
 soilcat_id text, 
