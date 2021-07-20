@@ -4,7 +4,7 @@ The program is free software: you can redistribute it and/or modify it under the
 This version of Giswater is provided by Giswater Association
 */
 
---FUNCTION CODE: XXXX
+--FUNCTION CODE: 3068
 
 CREATE OR REPLACE FUNCTION "ws_sample".gw_fct_check_importgpkg(p_data json) RETURNS json AS 
 $BODY$
@@ -13,7 +13,7 @@ $BODY$
 SELECT ws_sample.gw_fct_check_importgpkg($${"client":{"device":4, "infoType":1, "lang":"ES"},
 "form":{},"feature":{"tableName":"temp_ve_node"}}$$)::JSON
 
--- fid: xxx
+-- fid: 392
 
 */
 
@@ -36,7 +36,7 @@ v_missing_cat_arc text;
 v_incorrect_start text[];
 v_incorrect_end text[];
 v_error_context text;
-v_fid = 999;
+v_fid = 392;
  
 BEGIN 
 

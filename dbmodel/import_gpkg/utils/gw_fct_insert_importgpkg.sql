@@ -4,7 +4,7 @@ The program is free software: you can redistribute it and/or modify it under the
 This version of Giswater is provided by Giswater Association
 */
 
---FUNCTION CODE: XXXX
+--FUNCTION CODE: 3070
 
 CREATE OR REPLACE FUNCTION "SCHEMA_NAME".gw_fct_insert_importgpkg(p_data json) RETURNS json AS 
 $BODY$
@@ -14,7 +14,7 @@ EXAMPLE
 SELECT SCHEMA_NAME.gw_fct_insert_importgpkg($${"client":{"device":4, "infoType":1, "lang":"es_ES"},
 "form":{},"feature":{"tableName":"temp_ve_node"}}$$)::JSON
 
--- fid: xxx
+-- fid: 392
 */
 
 DECLARE 
