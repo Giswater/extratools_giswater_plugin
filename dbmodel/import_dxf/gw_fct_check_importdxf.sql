@@ -10,6 +10,9 @@ CREATE OR REPLACE FUNCTION SCHEMA_NAME.gw_fct_check_importdxf()
 RETURNS json AS
 $BODY$
 
+
+
+
 -- fid: 206
 
 DECLARE 

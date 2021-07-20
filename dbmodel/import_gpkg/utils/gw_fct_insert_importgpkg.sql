@@ -4,13 +4,18 @@ The program is free software: you can redistribute it and/or modify it under the
 This version of Giswater is provided by Giswater Association
 */
 
---FUNCTION CODE: 2784
+--FUNCTION CODE: XXXX
 
-CREATE OR REPLACE FUNCTION SCHEMA_NAME.gw_fct_insert_importdxf(p_data json)
-RETURNS json AS
+CREATE OR REPLACE FUNCTION "SCHEMA_NAME".gw_fct_insert_importgpkg(p_data json) RETURNS json AS 
 $BODY$
 
--- fid: 206
+/*
+EXAMPLE
+SELECT SCHEMA_NAME.gw_fct_insert_importgpkg($${"client":{"device":4, "infoType":1, "lang":"es_ES"},
+"form":{},"feature":{"tableName":"temp_ve_node"}}$$)::JSON
+
+-- fid: xxx
+*/
 
 DECLARE 
 
@@ -49,16 +54,7 @@ BEGIN
 	-- search path
 	SET search_path = "SCHEMA_NAME", public;
 
-	-- get input data 	
-	v_workcat := ((p_data ->>'data')::json->>'parameters')::json->>'workcat_id'::text;
-	v_topocontrol := ((p_data ->>'data')::json->>'parameters')::json->>'topocontrol'::text;
-	v_state_type := ((p_data ->>'data')::json->>'parameters')::json->>'state_type'::text;
-	v_builtdate := ((p_data ->>'data')::json->>'parameters')::json->>'builtdate'::text;
-	v_node_type := ((p_data ->>'data')::json->>'parameters')::json->>'node_type'::text;
-	v_arc_type := ((p_data ->>'data')::json->>'parameters')::json->>'arc_type'::text;
-
-	select state into v_state from value_state_type where id=v_state_type;
-
+	
 	-- select config values
 	SELECT project_type, giswater INTO v_project_type, v_version FROM sys_version order by id desc limit 1;
 
@@ -216,10 +212,3 @@ BEGIN
 	EXCEPTION WHEN OTHERS THEN
 	GET STACKED DIAGNOSTICS v_error_context = PG_EXCEPTION_CONTEXT;
 	RETURN ('{"status":"Failed","NOSQLERR":' || to_json(SQLERRM) || ',"SQLSTATE":' || to_json(SQLSTATE) ||',"SQLCONTEXT":' || to_json(v_error_context) || '}')::json;
-
-END;
-
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-
