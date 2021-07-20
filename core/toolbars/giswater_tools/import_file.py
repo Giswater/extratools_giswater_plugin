@@ -5,25 +5,20 @@ General Public License as published by the Free Software Foundation, either vers
 or (at your option) any later version.
 """
 # -*- coding: utf-8 -*-
-import json
 import os
-import subprocess
-from collections import OrderedDict
 from functools import partial
-
 
 from qgis.PyQt.QtCore import QDate
 from qgis.PyQt.QtWidgets import QGridLayout, QToolButton, QWidget
 from qgis.core import QgsApplication, QgsDataSourceUri, QgsProject, QgsVectorLayer, QgsVectorLayerExporter
-from qgis.gui import QgsDateTimeEdit
 
 from ...threads.dfx_execute import GwDxfExtraTool
-from ...ui.ui_manager import ImportDxfUi
+from ...ui.ui_manager import ImportFileUi
 from .... import global_vars
 from ....settings import tools_qgis, tools_qt, tools_gw, tools_db, dlg, tools_os, tools_log
 
 
-class ImportDxf(dlg.GwAction):
+class ImportFile(dlg.GwAction):
 
     def __init__(self, icon_path, action_name, text, toolbar, action_group):
         super().__init__(icon_path, action_name, text, toolbar, action_group)
@@ -33,7 +28,7 @@ class ImportDxf(dlg.GwAction):
 
     def clicked_event(self):
 
-        self.dlg_dxf = ImportDxfUi()
+        self.dlg_dxf = ImportFileUi()
         tools_gw.load_settings(self.dlg_dxf)
         self.dlg_dxf.progressBar.setVisible(False)
         self.dlg_dxf.btn_cancel.setEnabled(False)

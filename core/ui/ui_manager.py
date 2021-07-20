@@ -57,7 +57,7 @@ def get_ui_class(ui_file_name, subfolder='shared'):
     """ Get UI Python class from @ui_file_name """
 
     # Folder that contains UI files
-    if subfolder in ('basic', 'edit', 'epa', 'om', 'plan', 'utilities', 'toc', 'custom'):
+    if subfolder in ('basic', 'edit', 'epa', 'om', 'plan', 'utilities', 'toc', 'custom', 'main'):
         ui_folder_path = os.path.dirname(__file__) + os.sep + 'toolbars' + os.sep + subfolder
     else:
         ui_folder_path = os.path.dirname(__file__) + os.sep + subfolder
@@ -65,9 +65,9 @@ def get_ui_class(ui_file_name, subfolder='shared'):
     return uic.loadUiType(ui_file_path)[0]
 
 
-# extratools_giswater_plugin
-FORM_CLASS = get_ui_class('import_dxf.ui', 'extratools_giswater_plugin')
-class ImportDxfUi(GwDialog, FORM_CLASS):
+# main
+FORM_CLASS = get_ui_class('import_file.ui', 'main')
+class ImportFileUi(GwDialog, FORM_CLASS):
     pass
 
 
