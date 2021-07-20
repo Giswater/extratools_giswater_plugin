@@ -94,6 +94,7 @@ class ImportDxf(dlg.GwAction):
                 temp_layers_added.append(layer)
             if complet_result is not False:
                 dialog.txt_path.setText(complet_result['path'])
+            tools_gw.manage_json_return(complet_result['result'], 'gw_fct_check_importdxf')
 
             dialog.btn_run.setEnabled(True)
 
@@ -279,7 +280,7 @@ class ImportDxf(dlg.GwAction):
 
             if toc:
                 if dxf_layer.isValid():
-                    self._add_layer_toc_from_dxf(dxf_layer, dxf_output_filename)
+                    self._add_layer_toc_from_dxf(dxf_layer, 'GW Temporal Layers')
                     temp_layers_added.append(dxf_layer)
 
         # Unlock signals
