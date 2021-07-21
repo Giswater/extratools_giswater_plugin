@@ -27,6 +27,12 @@ ON CONFLICT (fid) DO NOTHING;
 
 -- 20/07/2021
 INSERT INTO config_function (id, function_name, returnmanager, layermanager, actions) 
+VALUES(2784,'gw_fct_insert_importdxf','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"line":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"polygon":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}}}',NULL,NULL)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO config_function (id, function_name, returnmanager, layermanager, actions) 
 VALUES(2786,'gw_fct_check_importdxf','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
 "line":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
 "polygon":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}}}',NULL,NULL)
@@ -59,3 +65,14 @@ INSERT INTO sys_table VALUES
 ('temp_import_connec', 'Temporal table to import connecs from diferent sources', 'role_edit', 0, null, null, null, null, null, null, null, null, 'giswater_tools plugin')
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO config_function (id, function_name, returnmanager, layermanager, actions) 
+VALUES(3068,'gw_fct_check_importgpkg','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"line":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"polygon":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}}}',NULL,NULL)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO config_function (id, function_name, returnmanager, layermanager, actions) 
+VALUES(3070,'gw_fct_import_importgpkg','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"line":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+"polygon":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}}}',NULL,NULL)
+ON CONFLICT (id) DO NOTHING;
