@@ -44,7 +44,7 @@ VALUES (3068, 'gw_fct_check_importgpkg', 'utils', 'function', 'json', 'json','Fu
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO sys_function(id, function_name, project_type, function_type, input_params, return_type, descript, sys_role, sample_query, source)
-VALUES (3070, 'gw_fct_import_importgpkg', 'utils', 'function', 'json', 'json','This function to import geopackage files into a Giswater schema works using the geopackage layername(s) AS Giswater catalogs. 
+VALUES (3070, 'gw_fct_insert_importgpkg', 'utils', 'function', 'json', 'json','This function to import geopackage files into a Giswater schema works using the geopackage layername(s) AS Giswater catalogs. 
 If catalog does not exists, the process will propose to create a new one. It has two steps:
 - STEP 1: A preview of data is showed. Topological information is provided in order to show user the topological consistency of geopackage data.
 - STEP 2: User can run or cancel the importation process.',
@@ -72,7 +72,7 @@ VALUES(3068,'gw_fct_check_importgpkg','{"style":{"point":{"style":"unique", "val
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO config_function (id, function_name, returnmanager, layermanager, actions) 
-VALUES(3070,'gw_fct_import_importgpkg','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
+VALUES(3070,'gw_fct_insert_importgpkg','{"style":{"point":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
 "line":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}, 
 "polygon":{"style":"unique", "values":{"width":3, "color":[255,1,1], "transparency":0.5}}}}',NULL,NULL)
 ON CONFLICT (id) DO NOTHING;
