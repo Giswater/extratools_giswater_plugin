@@ -38,8 +38,8 @@ v_featuretype text;
 v_incorrect_arc text[];
 v_count integer;
 v_errortext text;
-v_start_point public.geometry(Point,25831);
-v_end_point public.geometry(Point,25831);
+v_start_point public.geometry(Point,SRID_VALUE);
+v_end_point public.geometry(Point,SRID_VALUE);
 v_query text;
 v_result json;
 v_result_info json;
@@ -104,13 +104,24 @@ BEGIN
 	EXECUTE v_querytext INTO v_count;
 
 	IF v_count > 0 THEN
+
 		INSERT INTO audit_check_data (fid, result_id, criticity, error_message) 
 		VALUES (v_fid, null, 3, concat ('There is/are ', v_count,' features with errors on columns related to catalog. Please fix it before continue.'));
 		v_message = 'Import geopackage canceled. Please check your data....';
+		
+	IF v_featuretype = 'LINK' THEN
+
+		-- check quality data from temp_table
+		v_querytext ='SELECT count(*) FROM temp_import_'||lower(v_featuretype)||' WHERE log_level = 2';
+		EXECUTE v_querytext INTO v_count;
+	
+		INSERT INTO audit_check_data (fid, result_id, criticity, error_message) 
+		VALUES (v_fid, null, 2, concat ('There is/are ', v_count,' topology errors. Please fix it before continue. Disable topocontrol is not allowed for links.'));
+		v_message = 'Import geopackage canceled. Please check your data....';
+	
 	ELSE 
 		--disable topocontrol
 		IF v_topocontrol is FALSE THEN
-		
 			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_node_proximity';
 			UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'activated', FALSE) WHERE parameter = 'edit_connec_proximity';
 			UPDATE config_param_system SET value = TRUE WHERE parameter = 'edit_topocontrol_disable_error';
@@ -261,8 +272,21 @@ BEGIN
 
 				-- restore values
 				UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'status', v_status) WHERE parameter = 'edit_connec_autofill_ccode';			
-			END IF;
 
+			ELSIF  v_featuretype ='LINK' THEN
+
+				-- disable autofill customer code
+				v_status = (SELECT (value::json)->>'status' FROM config_param_system WHERE parameter = 'edit_connec_autofill_ccode');
+				UPDATE config_param_system SET value = gw_fct_json_object_set_key(value::json, 'status', FALSE) WHERE parameter = 'edit_connec_autofill_ccode';
+				
+				-- links
+				INSERT INTO v_edit_link (state, expl_id, the_geom)
+				SELECT state, expl_id, the_geom					
+				FROM temp_import_link;
+
+				GET DIAGNOSTICS v_count = row_count;
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted link(s) from geopackage file.'));		
+			END IF;
 		ELSIF v_project_type = 'UD' THEN
 			-- todo;
 			

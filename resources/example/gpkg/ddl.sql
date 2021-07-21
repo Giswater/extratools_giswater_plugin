@@ -124,3 +124,12 @@ SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES
 SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"CONNEC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"3178"}}$$)::text;
 SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"CONNEC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"3179"}}$$)::text;
 SELECT gw_fct_setfeaturedelete($${"client":{"device":4, "infoType":1, "lang":"ES"}, "form":{}, "feature":{"type":"CONNEC"}, "data":{"filterFields":{}, "pageInfo":{}, "feature_id":"3180"}}$$)::text;
+
+
+-- delete links
+DELETE FROM link WHERE link_id IN (261,263,264,265,266,267,268,270,271,272,275,276,277,278,283,284,285,286,287,288,289,290,291,292,293,294,296,297,298,299,300,301,302,303,304,
+	305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,341,342,369,370,371,481,482)
+
+-- delete vnodes (repair vnode table)
+SELECT gw_fct_setvnoderepair($${ "client":{"device":4, "infoType":1, "lang":"ES"}, "form":{},"feature":{}, "data":{}}$$);
+

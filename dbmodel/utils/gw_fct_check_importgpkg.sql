@@ -27,11 +27,12 @@ rec_table record;
 rec_feature record;
 rec_node record;
 
+v_id text;
 v_incorrect_arc text[];
 v_count integer;
 v_errortext text;
-v_start_point public.geometry(Point,25831);
-v_end_point public.geometry(Point,25831);
+v_start_point public.geometry(Point,SRID_VALUE);
+v_end_point public.geometry(Point,SRID_VALUE);
 v_query text;
 rec record;
 v_result json;
@@ -55,6 +56,7 @@ v_connecproximity float;
 v_arcsearchnodes float;
 v_value text;
 v_values record;
+v_link_searchbuffer float =0.1; 	
 
  
 BEGIN 
@@ -95,7 +97,9 @@ BEGIN
 		UPDATE temp_import_node temp SET log_level = 2, log_message = concat('Node is closer than (',v_nodeproximity,' mts.) to other node. ') FROM (
 		SELECT rid, id FROM (
 		SELECT DISTINCT t1.id as rid, t1.nodecat_id, t1.state as state1, t2.id, t2.nodecat_id, t2.state as state2, t1.expl_id, t1.the_geom
-		FROM temp_import_node AS t1 JOIN temp_import_node AS t2 ON ST_Dwithin(t1.the_geom, t2.the_geom,(v_nodeproximity)) 
+		FROM temp_import_node AS t1 JOIN 
+		(SELECT id, nodecat_id, state, expl_id, the_geom, fid, cur_user FROM temp_import_node UNION SELECT node_id, nodecat_id, state, expl_id, the_geom, null, null FROM node WHERE state IN (1,2)) AS t2 ON 
+		ST_Dwithin(t1.the_geom, t2.the_geom,(v_nodeproximity)) 
 		WHERE t1.id != t2.id 
 		AND t1.fid=v_fid and t2.fid=v_fid AND t1.cur_user=current_user AND t2.cur_user=current_user
 		ORDER BY t1.id ) a ) b
@@ -169,10 +173,12 @@ BEGIN
 	ELSIF v_featuretype = 'CONNEC' THEN
 
 		-- topology
-		UPDATE temp_import_connec temp SET log_level = 2, log_message = concat('Connec is closer than minimun distance (',v_connecproximity,') to other connec. ') FROM (
-		SELECT rid FROM (
-		SELECT DISTINCT t1.id as rid, t1.connecat_id, t1.state as state1, t2.id, t2.connecat_id, t2.state as state2, t1.expl_id, t1.the_geom
-		FROM temp_import_connec AS t1 JOIN temp_import_connec AS t2 ON ST_Dwithin(t1.the_geom, t2.the_geom,(v_connecproximity)) 
+		UPDATE temp_import_connec temp SET log_level = 2, log_message = concat('Connec is closer than (',v_connecproximity,' mts.) to other connec. ') FROM (
+		SELECT rid, id FROM (
+		SELECT DISTINCT t1.id as rid, t1.conneccat_id, t1.state as state1, t2.id, t2.conneccat_id, t2.state as state2, t1.expl_id, t1.the_geom
+		FROM temp_import_connec AS t1 JOIN 
+		(SELECT id, connecat_id, state, expl_id, the_geom, fid, cur_user FROM temp_import_connec UNION SELECT connec_id, connecat_id, state, expl_id, the_geom, null, null FROM connec WHERE state IN (1,2)) AS t2 ON 
+		ST_Dwithin(t1.the_geom, t2.the_geom,(v_connecproximity)) 
 		WHERE t1.id != t2.id 
 		AND t1.fid=v_fid and t2.fid=v_fid AND t1.cur_user=current_user AND t2.cur_user=current_user
 		ORDER BY t1.id ) a ) b
@@ -201,7 +207,34 @@ BEGIN
 		ELSE
 			INSERT INTO audit_check_data (fid, result_id, criticity, error_message) VALUES (v_fid, null, 1, concat('All values for [connecat_id] matchs with cat_connec table'));	
 		END IF;
-		
+
+	ELSIF v_featuretype = 'LINK' THEN
+
+		FOR rec_feature IN SELECT * FROM temp_import_arc WHERE fid = v_fid AND cur_user=current_user
+		LOOP 
+			-- connec as init point
+			SELECT connec_id INTO v_id FROM v_edit_connec WHERE ST_DWithin(ST_StartPoint(NEW.the_geom), v_edit_connec.the_geom,v_link_searchbuffer) AND state>0 
+			ORDER by st_distance(ST_StartPoint(NEW.the_geom), v_edit_connec.the_geom) LIMIT 1;
+
+			IF v_id IS NULL THEN
+				UPDATE temp_import_link SET log_level = 2, log_message = 'Not foun [Connec on initial position] for link ' WHERE id = rec_feature.id;
+			END IF;
+
+			-- arc as end point
+			SELECT arc_id INTO v_id FROM v_edit_arc WHERE ST_DWithin(ST_EndPoint(NEW.the_geom), v_edit_arc.the_geom, v_link_searchbuffer) AND state>0
+			ORDER by st_distance(ST_EndPoint(NEW.the_geom), v_edit_arc.the_geom) LIMIT 1;
+
+			IF v_id IS NULL THEN
+			
+				-- connec as end point
+				SELECT connec_id INTO v_id FROM v_edit_connec WHERE ST_DWithin(ST_EndPoint(NEW.the_geom), v_edit_connec.the_geom,v_link_searchbuffer) AND state>0 
+				ORDER by st_distance(ST_EndPoint(NEW.the_geom), v_edit_connec.the_geom) LIMIT 1;
+
+				IF v_id IS NULL THEN
+					UPDATE temp_import_link SET log_level = 2, log_message = 'Not found [ARC] or [CONNEC] on final position for link ' WHERE id = rec_feature.id;
+				END IF;			
+			END IF;
+		END LOOP;		
 	END IF;
 		
 	-- other columns with catalog

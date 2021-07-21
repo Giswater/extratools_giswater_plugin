@@ -229,6 +229,24 @@ adescript text,
 asset_id text
 );
 
+
+DROP TABLE IF EXISTS temp_import_link;
+create table temp_import_link (
+
+fid integer,
+cur_user text NOT NULL DEFAULT "current_user"(),
+log_message text,
+log_level integer,
+
+--level 3
+id text,
+state int2,
+expl_id integer,
+the_geom geometry('LINESTRING', 25831)
+);
+
+
 ALTER TABLE temp_import_arc ADD CONSTRAINT temp_import_node_pkey PRIMARY KEY (fid,cur_user,id);
 ALTER TABLE temp_import_node ADD CONSTRAINT temp_import_arc_pkey PRIMARY KEY (fid,cur_user,id);
 ALTER TABLE temp_import_connec ADD CONSTRAINT temp_import_connec_pkey PRIMARY KEY (fid,cur_user,id);
+ALTER TABLE temp_import_link ADD CONSTRAINT temp_import_link_pkey PRIMARY KEY (fid,cur_user,id);
