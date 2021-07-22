@@ -108,7 +108,7 @@ BEGIN
 		INSERT INTO audit_check_data (fid, result_id, criticity, error_message) 
 		VALUES (v_fid, null, 3, concat ('There is/are ', v_count,' features with errors on columns related to catalog. Please fix it before continue.'));
 		v_message = 'Import geopackage canceled. Please check your data....';
-		
+	END IF;	
 	IF v_featuretype = 'LINK' THEN
 
 		-- check quality data from temp_table
