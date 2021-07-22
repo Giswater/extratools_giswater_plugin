@@ -78,13 +78,9 @@ class ImportFile(dlg.GwAction):
 
         description = f"ToolBox function"
 
-        index = self.dlg_import_file.mainTab.currentIndex()
-        tab = self.dlg_import_file.mainTab.widget(index)
-        tab_name = tab.objectName()
-
-        if tab_name == 'tab_dxf':
+        if self.function_process == 'dxf':
             self.task = GwDxfExtraTool(description, dialog)
-        elif tab_name == 'tab_gpkg':
+        elif self.function_process == 'gpkg':
             self.task = GwGpkgExtraTool(description, dialog)
         else: return
         QgsApplication.taskManager().addTask(self.task)
@@ -101,6 +97,8 @@ class ImportFile(dlg.GwAction):
     def _import_dxf(self, dialog, temp_layers_added):
         """ Function called in def add_button(self, dialog, field): -->
                 widget.clicked.connect(partial(getattr(module, function_name), **kwargs)) """
+
+        self.function_process = 'dxf'
 
         if tools_qt.is_checked(self.dlg_import_file, self.dlg_import_file.chk_dxf_active_layer):
             path = False
@@ -122,6 +120,8 @@ class ImportFile(dlg.GwAction):
         """ Function called in def add_button(self, dialog, field): -->
                 widget.clicked.connect(partial(getattr(module, function_name), **kwargs)) """
 
+        self.function_process = 'gpkg'
+
         if tools_qt.is_checked(self.dlg_import_file, self.dlg_import_file.chk_gpkg_active_layer):
             path = False
         else:
@@ -135,6 +135,9 @@ class ImportFile(dlg.GwAction):
             tools_gw.manage_json_return(complet_result['result'], 'gw_fct_check_importgpkg')
 
             dialog.btn_run.setEnabled(True)
+
+            # Fill tab log
+            tools_gw.fill_tab_log(self.dlg_import_file, complet_result['result']['body']['data'], tab_idx=2)
 
 
     def _set_gpkg_path(self, widget):
@@ -278,7 +281,7 @@ class ImportFile(dlg.GwAction):
         rows = tools_db.get_rows(sql)
         tools_qt.fill_combo_values(self.dlg_import_file.cmb_node_type, rows, 1)
 
-        feature_types = [["arc", "Arc"], ["node", "Node"], ["connec", "Connec"]]
+        feature_types = [["arc", "Arc"], ["node", "Node"], ["connec", "Connec"], ["link", "Link"]]
         tools_qt.fill_combo_values(self.dlg_import_file.cmb_feature_type, feature_types, 1)
 
 
