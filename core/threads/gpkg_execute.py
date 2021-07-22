@@ -26,6 +26,7 @@ class GwGpkgExtraTool(task.GwTask):
         # self.result = result
         self.json_result = None
         self.exception = None
+        self.last_error = None
 
     def run(self):
 
