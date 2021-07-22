@@ -40,7 +40,7 @@ class GwGpkgExtraTool(task.GwTask):
         extras = f'"topocontrol":{active_topocontrol}'
         body = tools_gw.create_body(feature=feature, extras=extras)
         self.json_result, self.last_error = tools_gw.execute_procedure('gw_fct_insert_importgpkg', body, log_sql=True, is_thread=True)
-        print(f"aaaaa -> {self.last_error}")
+
         try:
             if self.json_result['status'] == 'Failed': return False
             if not self.json_result or self.json_result is None: return False

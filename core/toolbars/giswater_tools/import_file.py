@@ -63,8 +63,10 @@ class ImportFile(dlg.GwAction):
 
         self._load_user_values()
 
-        tools_gw.open_dialog(self.dlg_import_file, dlg_name='toolbox')
+        # TODO:: Remove this wip remove tab before demo
+        self.dlg_import_file.mainTab.removeTab(0)
 
+        tools_gw.open_dialog(self.dlg_import_file, dlg_name='toolbox')
 
 
     def _execute_function(self, dialog):
@@ -137,7 +139,9 @@ class ImportFile(dlg.GwAction):
             dialog.btn_run.setEnabled(True)
 
             # Fill tab log
-            tools_gw.fill_tab_log(self.dlg_import_file, complet_result['result']['body']['data'], tab_idx=2)
+            # TODO:: set tab_idx=2 when  recover tab dxf
+            tools_gw.fill_tab_log(self.dlg_import_file, complet_result['result']['body']['data'], tab_idx=1,
+                                  call_set_tabs_enabled=False)
 
 
     def _set_gpkg_path(self, widget):
