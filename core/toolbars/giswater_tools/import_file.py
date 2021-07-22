@@ -63,7 +63,7 @@ class ImportFile(dlg.GwAction):
 
         self._load_user_values()
 
-        # TODO:: Remove this wip remove tab before demo
+        # TODO:: Remove this wip remove tab after demo
         self.dlg_import_file.mainTab.removeTab(0)
 
         tools_gw.open_dialog(self.dlg_import_file, dlg_name='toolbox')
@@ -116,6 +116,11 @@ class ImportFile(dlg.GwAction):
             tools_gw.manage_json_return(complet_result['result'], 'gw_fct_check_importdxf')
 
             dialog.btn_run.setEnabled(True)
+
+            # Fill tab log
+            # TODO:: set tab_idx=2 when recover tab dxf
+            tools_gw.fill_tab_log(self.dlg_import_file, complet_result['result']['body']['data'], tab_idx=1,
+                                  call_set_tabs_enabled=False)
 
 
     def _import_gpkg(self, dialog, temp_layers_added):
