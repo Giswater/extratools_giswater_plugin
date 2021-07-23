@@ -9,9 +9,8 @@ or (at your option) any later version.
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.core import QgsTask
 
-from ...settings import task, tools_qgis, tools_qt, tools_gw, tools_db, toolbox, tools_os, tools_log
+from ...settings import task, tools_qt, tools_gw
 
-import time
 class GwGpkgExtraTool(task.GwTask):
     """ This shows how to subclass QgsTask """
 
