@@ -285,7 +285,18 @@ BEGIN
 				FROM temp_import_link;
 
 				GET DIAGNOSTICS v_count = row_count;
-				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted link(s) from geopackage file.'));		
+				INSERT INTO audit_check_data (fid,  criticity, error_message) VALUES (v_fid, 1, concat ('INFO: There is/are ',v_count,' inserted link(s) from geopackage file.'));	
+				
+				-- update those links related to other links insertet after that thoses predecesors
+				UPDATE v_edit_link SET the_geom=the_geom FROM v_edit_connec WHERE arc_id IS NULL AND connec_id = feature_id;
+				
+				-- update those links related to other links insertet after that thoses predecesors (again)
+				UPDATE v_edit_link SET the_geom=the_geom FROM v_edit_connec WHERE arc_id IS NULL AND connec_id = feature_id;
+				
+				-- update those links related to other links insertet after that thoses predecesors (again again)
+				UPDATE v_edit_link SET the_geom=the_geom FROM v_edit_connec WHERE arc_id IS NULL AND connec_id = feature_id;
+				
+				
 			END IF;
 		ELSIF v_project_type = 'UD' THEN
 			-- todo;
