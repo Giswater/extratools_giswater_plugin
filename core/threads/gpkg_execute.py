@@ -39,7 +39,7 @@ class GwGpkgExtraTool(task.GwTask):
             active_topocontrol = "false"
         extras = f'"topocontrol":{active_topocontrol}'
         body = tools_gw.create_body(feature=feature, extras=extras)
-        self.json_result, self.last_error = tools_gw.execute_procedure('gw_fct_insert_importgpkg', body, log_sql=True, is_thread=True)
+        self.json_result = tools_gw.execute_procedure('gw_fct_insert_importgpkg', body, log_sql=True, is_thread=True)
 
         try:
             if self.json_result['status'] == 'Failed': return False
@@ -58,15 +58,13 @@ class GwGpkgExtraTool(task.GwTask):
         return True
 
     def finished(self, result):
-        if result is False and self.exception is not None:
+        if result is False or self.exception is not None:
             msg = f"<b>Key: </b>{self.exception}<br>"
             msg += f"<b>key container: </b>'body/data/ <br>"
             msg += f"<b>Python file: </b>{__name__} <br>"
             msg += f"<b>Python function:</b> {self.__class__.__name__} <br>"
             tools_qt.show_exception_message("Key on returned json from ddbb is missed.", msg)
-        elif result is False:
-            tools_qt.show_exception_message("Database execution failed", self.last_error)
-        elif result:
+        else:
             tools_gw.fill_tab_log(self.dialog, self.json_result['body']['data'], True, True, 1, True, False)
 
     def cancel(self):
