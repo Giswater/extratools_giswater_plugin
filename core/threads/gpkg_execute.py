@@ -6,14 +6,11 @@ or (at your option) any later version.
 """
 # -*- coding: utf-8 -*-
 
-from qgis.PyQt.QtWidgets import QComboBox, QCheckBox, QDoubleSpinBox, QSpinBox, QWidget, QLineEdit
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.core import QgsTask
-from qgis.gui import QgsDateTimeEdit
 
-from ...settings import task, tools_qgis, tools_qt, tools_gw, tools_db, toolbox, tools_os, tools_log
+from ...settings import task, tools_qt, tools_gw
 
-import time
 class GwGpkgExtraTool(task.GwTask):
     """ This shows how to subclass QgsTask """
 
@@ -28,23 +25,22 @@ class GwGpkgExtraTool(task.GwTask):
         # self.result = result
         self.json_result = None
         self.exception = None
+        self.last_error = None
 
     def run(self):
-
-        # state = tools_qt.get_combo_value(self.dialog, self.dialog.cmb_state, 0)
-        # state_type = tools_qt.get_combo_value(self.dialog, self.dialog.cmb_state_type, 0)
-        # workcat = tools_qt.get_combo_value(self.dialog, self.dialog.cmb_workcat, 0)
-        # arc_type = tools_qt.get_combo_value(self.dialog, self.dialog.cmb_arc_type, 0)
-        # node_type = tools_qt.get_combo_value(self.dialog, self.dialog.cmb_node_type, 0)
-        # topocontrol = tools_qt.is_checked(self.dialog, self.dialog.chk_topocontrol)
 
         feature_type = tools_qt.get_combo_value(self.dialog, self.dialog.cmb_feature_type, 0)
         active_topocontrol = tools_qt.is_checked(self.dialog, self.dialog.chk_gpkg_topocontrol)
 
         feature = f'"featureType":"{feature_type.upper()}"'
+        if active_topocontrol:
+            active_topocontrol = "true"
+        else:
+            active_topocontrol = "false"
         extras = f'"topocontrol":{active_topocontrol}'
         body = tools_gw.create_body(feature=feature, extras=extras)
-        self.json_result = tools_gw.execute_procedure('gw_fct_insert_importgpkg', body, log_sql=True, is_thread=True)
+        self.json_result, self.last_error = tools_gw.execute_procedure('gw_fct_insert_importgpkg', body, log_sql=True, is_thread=True)
+
         try:
             if self.json_result['status'] == 'Failed': return False
             if not self.json_result or self.json_result is None: return False
@@ -68,6 +64,8 @@ class GwGpkgExtraTool(task.GwTask):
             msg += f"<b>Python file: </b>{__name__} <br>"
             msg += f"<b>Python function:</b> {self.__class__.__name__} <br>"
             tools_qt.show_exception_message("Key on returned json from ddbb is missed.", msg)
+        elif result is False:
+            tools_qt.show_exception_message("Database execution failed", self.last_error)
         elif result:
             tools_gw.fill_tab_log(self.dialog, self.json_result['body']['data'], True, True, 1, True, False)
 

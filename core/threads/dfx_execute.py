@@ -6,14 +6,11 @@ or (at your option) any later version.
 """
 # -*- coding: utf-8 -*-
 
-from qgis.PyQt.QtWidgets import QComboBox, QCheckBox, QDoubleSpinBox, QSpinBox, QWidget, QLineEdit
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.core import QgsTask
-from qgis.gui import QgsDateTimeEdit
 
-from ...settings import task, tools_qgis, tools_qt, tools_gw, tools_db, toolbox, tools_os, tools_log
+from ...settings import task, tools_qt, tools_gw
 
-import time
 class GwDxfExtraTool(task.GwTask):
     """ This shows how to subclass QgsTask """
 
